@@ -12,4 +12,4 @@ serverAddres = "127.0.0.1"
 serverPort = 8082
 
 #Current version
-ver = 3.3
+ver = 3.5
