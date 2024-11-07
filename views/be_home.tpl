@@ -14,7 +14,7 @@
 		<option value="{{c.course_id}}">{{c.name}}</option>
 	% end
 	</select>
-	  <input type="submit" value="Show Deck">
+	  <input type="submit" value="Show Deck(s)">
 </form>
 </div>
    </body>

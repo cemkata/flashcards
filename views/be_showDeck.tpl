@@ -21,11 +21,11 @@ function confirmDelete(did, cid) {
     <th>Delete</th>
   </tr>
   <tr>
-    <td colspan="3"><input type="button" onclick="location.href='./showCards?courseID={{course_id}}&deckID={{deck[0]['id']}}';" value="Cards in deck - {{course_name}} by: {{deck[0]['info']}}" /></td>
+    <td colspan="3"><input type="button" onclick="location.href='./showCards?courseID={{course_id}}&deckID={{deck[0]['id']}}';" value="Show cards in deck - {{course_name}} topic/created by: {{deck[0]['info']}}" /></td>
   </tr>
 % for i in range(1, len(deck)):
   <tr>
-    <td><input type="button" onclick="location.href='./showCards?courseID={{course_id}}&deckID={{deck[i]['id']}}';" value="Cards in deck - {{course_name}} by: {{deck[i]['info']}}" /></td>
+    <td><input type="button" onclick="location.href='./showCards?courseID={{course_id}}&deckID={{deck[i]['id']}}';" value="Show cards in deck - {{course_name}} topic/created by: {{deck[i]['info']}}" /></td>
     <td><input type="button" onclick="confirmEdit('{{deck[i]['id']}}', '{{course_id}}')" value="Edit" /></td>
     <td><input type="button" onclick="confirmDelete('{{deck[i]['id']}}', '{{course_id}}')"value="Delete"/></td>
   </tr>
