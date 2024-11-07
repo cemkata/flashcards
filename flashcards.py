@@ -657,7 +657,7 @@ def createDB():
         create_table(conn, sql_create_flashcards_table)
         create_table(conn, sql_create_courses_table)
         create_table(conn, sql_create_remarks_table)
-        create_remark("admin")
+        create_remark("admin", 0)
         print("Done!")
     else:
         print("Error! cannot create the database connection.")
