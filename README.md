@@ -1,7 +1,8 @@
 # flashcards
 
-Starting flashcards version 3.1
+Starting flashcards version 3.2
 
+You need to create a DB at fisrst start by running 'flashcards.py -cdb'
 
     -h shows this help
     -cdb creates the database
