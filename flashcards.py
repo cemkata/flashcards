@@ -119,22 +119,34 @@ def route_new_card():
 def route_add_Card():
      question = request.forms.question
      answer = request.forms.answer
-     courseID = request.forms.course_id
-     # create a new card
-     card = (courseID, html.unescape(question), html.unescape(answer));
-     card_id = create_card(card)
-     return template('__done')
-     
-@app.route('/be/showCards')
-def route_show_Cards():
-     courseID = request.query.courseID or -1
+     courseID = request.forms.course_id or -1
      if courseID == -1:
         redirect("./")
      try:
         int(courseID)
      except ValueError:
         redirect("/be/")
-     sql = "SELECT `id`, `course_id`, `question`, `answer` FROM `flashcards_tbl` where course_id = "+ courseID +" ORDER BY `_rowid_` ASC LIMIT 0, 50000;"
+     deck_id = request.forms.deck_id or -1
+     print(deck_id)
+     if deck_id == -1 or deck_id == "-1":
+        deck_id = getRemarkIDByNameAndCourseId(courseID, name = "Default deck")
+        #get id for default and course id
+     # create a new card
+     card = (courseID, html.unescape(question), html.unescape(answer));
+     card_id = create_card(card, deck_id)
+     return template('__done')
+    
+@app.route('/be/showCards')
+def route_show_Cards():
+     courseID = request.query.courseID or -1
+     deckID = request.query.deckID or -1
+     if courseID == -1:
+        redirect("./")
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/")
+     sql = "SELECT `id`, `course_id`, `question`, `answer` FROM `flashcards_tbl` where course_id = "+ courseID +" AND remark = "+ deckID +" ORDER BY `_rowid_` ASC LIMIT 0, 50000;"
         
      conn = create_connection(database)
      with conn:
@@ -148,7 +160,7 @@ def route_show_Cards():
         cur.execute("SELECT `name` FROM `courses_tbl` where course_id = " + courseID)
         course_name = cur.fetchone()
      return template('be_all_Cards', flashCards = fc, c_name = course_name[0])
-     
+
 @app.route('/be/editCard')
 def route_edit_card():
      #http://127.0.0.1:8081/edit?id=5
@@ -174,16 +186,25 @@ def route_edit_card():
 def route_update_card():
      question = request.forms.question
      answer = request.forms.answer
-     courseID = request.forms.course_id
+     courseID = request.forms.course_id or -1
+     if courseID == -1:
+        redirect("./")
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/")
      qid = request.forms.qid
+     deck_id = request.forms.deck_id or -1
+     if deck_id == -1 or deck_id == "-1":
+        deck_id = getRemarkIDByNameAndCourseId(courseID, name = "Default deck")
      # create a new card
      card = (courseID, html.unescape(question), html.unescape(answer), qid);
-     card_id = update_card(card)
+     _ = update_card(card)
+     update_card_remark(qid, deck_id)
      return template('__done')
      
 @app.route('/be/deleteCard')
 def route_delete_card():
-     #TODO
      #http://127.0.0.1:8081/delete?id=5
      questionID = request.query.id or -1
      if questionID == -1:
@@ -200,6 +221,97 @@ def route_delete_card():
         return template('__done')
 ########################
 ##Card functions end  ##
+########################
+
+##########################
+##Deck functions start  ##
+##########################   
+@app.route('/be/editDeck')
+def route_edit_Deck():
+     #http://127.0.0.1:8081/edit?id=5
+     courseID = request.query.courseID
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/")
+     deckID = request.query.deckID
+     try:
+        int(deckID)
+     except ValueError:
+        redirect("/be/")
+     if deckID != "-1":
+        cName = getRemark(courseID, deckID)
+        return template('be_add_OR_edit_Deck', deckName = cName[0], did = deckID)
+     else:
+        return template('be_add_OR_edit_Deck', cid = courseID)
+
+@app.post('/be/addDeck') # or @app.route('/addCard', method='POST')
+def route_add_Deck():
+     text = request.forms.deckName
+     courseID = request.forms.course_id
+     _ = create_remark(text, courseID)
+     return template('__done')
+
+@app.post('/be/updateDeck') # or @app.route('/updateCard', method='POST')
+def route_update_Deck():
+     remrk_id = request.forms.did
+     text = request.forms.deckName
+     _ = update_remark(remrk_id, text)
+     return template('__done')
+ 
+@app.route('/be/deleteDeck')
+def route_delete_Deck():
+     #TODO
+     return template('__done')
+     #http://127.0.0.1:8081/deleteDeck?id=5
+     courseID = request.query.courseID or -1
+     deckID = request.query.deckID or -1
+     if courseID == -1:
+        redirect("./")
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/showcourses")
+        
+     if deckID == -1 or deckID == admin_remark_id:
+        redirect("./")
+     try:
+        int(deckID)
+     except ValueError:
+        redirect("/be/showcourses")
+     conn = create_connection(database)
+     with conn:
+        cur = conn.cursor()
+        sql = "delete from flashcards_tbl where remark == {}".format(courseID)
+        cur.execute(sql)
+        sql = "delete from remarks_tbl where remark == {}".format(courseID)
+        cur.execute(sql)
+     return template('__done')
+
+@app.route('/be/showDecks')
+def route_show_Deck():
+     courseID = request.query.courseID or -1
+     if courseID == -1:
+        redirect("./")
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/")
+     cName = get_course_name(courseID)
+     return template('be_showDeck', course_id = courseID, course_name = cName[0], deck = get_decks(courseID))
+     
+@app.route('/be/getDecks')
+def route_show_Deck():
+     courseID = request.query.courseID or -1
+     if courseID == -1:
+        redirect("./")
+     try:
+        int(courseID)
+     except ValueError:
+        redirect("/be/")
+     return json.dumps(get_decks(courseID))
+########################
+##Deck functions end  ##
 ########################
 
 ##########################
@@ -220,7 +332,8 @@ def route_add_course():
         return template('be_add_OR_edit_course', name=courseName, description=courseDescription, error_str = errStr)
      else:
         course = (courseID, html.unescape(courseName), html.unescape(courseDescription));
-        card_id = create_course(course)
+        _ = create_course(course)
+        _ = create_remark("Default deck", courseID)
      return template('__done')
 
 @app.route('/be/showcourses')
@@ -268,6 +381,9 @@ def route_delete_course():
      with conn:
         cur = conn.cursor()
         sql = "delete from flashcards_tbl where course_id == (select course_id from courses_tbl where id = {})".format(courseID)
+        cur.execute(sql)
+        sql = "delete from remarks_tbl where course_id == (select course_id from courses_tbl where id = {})".format(courseID)
+        cur.execute(sql)
         cur.execute("DELETE FROM courses_tbl where id == " + courseID)
      return template('__done')
 ##########################
@@ -318,10 +434,8 @@ def get_decks(courseID):
         # create a new card
         cur = conn.cursor()
         #TODO
-        sql = '''select rm."id", rm."description" from "flashcards_tbl" as fl
-                 join "remarks_tbl" as rm on fl."remark" = rm."id"
-                 where fl."course_id" = '''+str(courseID)+'''
-				 group by rm."id"'''
+        sql = '''select rm."id", rm."description" from "remarks_tbl" as rm
+                 where rm."course_id" = '''+str(courseID) +''' order by rm."id"'''
         cur.execute(sql)
         rows = cur.fetchall()
         dc = []
@@ -414,6 +528,34 @@ def update_card(card):
         conn.commit()
     return cur.lastrowid
 
+def update_card_remark(card_id, remark = False):
+    """
+    Create a new flashcard into the projects table
+    :param conn:
+    :param card id
+    :param remark id
+    :return: project id
+    """
+    conn = create_connection(database)
+    with conn:
+        sql = ''' UPDATE flashcards_tbl SET remark = ? WHERE id = ? '''
+        cur = conn.cursor()
+        if remark:
+           cur.execute(sql, (remark, card_id))
+        else:
+           cur.execute(sql, (remark, admin_remark_id))
+        conn.commit()
+    return cur.lastrowid
+
+def getRemarkIDByNameAndCourseId(courseID, name):
+    conn = create_connection(database)
+    sql = '''select id from remarks_tbl where description = "'''+name+'''" and course_id = '''+courseID
+    print(sql)
+    cur = conn.cursor()
+    cur.execute(sql)
+    conn.commit()
+    return int(cur.fetchone()[0])
+
 def getRemarkIDByName(name = "admin"):
     conn = create_connection(database)
     sql = '''select id from remarks_tbl where description = "'''+name+'''"'''
@@ -422,18 +564,43 @@ def getRemarkIDByName(name = "admin"):
     conn.commit()
     return int(cur.fetchone()[0])
 
-def create_remark(remark):
+def getRemark(course_id, remrk_id):
+     conn = create_connection(database)
+     with conn:
+        cur = conn.cursor()
+        sql = '''select description from remarks_tbl where course_id = "'''+course_id+'''" and id = "'''+remrk_id+'''"'''
+        cur.execute(sql)
+        rows = cur.fetchone()
+     return rows
+
+def update_remark(remrk_id, text):
+    """
+    Update a new remark into the projects table
+    :param conn:
+    :param remrk_id
+    :param text
+    :return: None
+    """
+    conn = create_connection(database)
+    with conn:
+        sql = ''' UPDATE remarks_tbl SET description = ? WHERE id = ? '''
+        cur = conn.cursor()
+        cur.execute(sql, (text, remrk_id))
+        conn.commit()
+    return cur.lastrowid
+
+def create_remark(remark, cid):
     """
     Create a new remark into the projects table
     :param conn:
     :param card
     :return: project id
     """
-    sql = ''' INSERT INTO remarks_tbl(description) VALUES (?);'''
+    sql = ''' INSERT INTO remarks_tbl(description, course_id) VALUES (?, ?);'''
     conn = create_connection(database)
     with conn:
         cur = conn.cursor()
-        cur.execute(sql, (remark,))
+        cur.execute(sql, (remark, cid))
         conn.commit()
     return cur.lastrowid
 
@@ -473,8 +640,10 @@ def createDB():
                                     ); """
 
     sql_create_remarks_table = """ CREATE TABLE IF NOT EXISTS "remarks_tbl" (
-                                        "id" integer PRIMARY KEY,
-                                        "description" text NOT NULL
+                                        "id"	INTEGER,
+                                        "description"	text NOT NULL,
+                                        "course_id"	INTEGER NOT NULL,
+                                        PRIMARY KEY("id" AUTOINCREMENT)
                                     ); """
     # create a database connection
     if os.path.exists(database):

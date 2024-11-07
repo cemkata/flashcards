@@ -7,14 +7,14 @@
 	<input type="button" onclick="location.href='./newCard';" value="Add Card" />
 	<input type="button" onclick="location.href='./newcourse';" value="Add course" />
 	<input type="button" onclick="location.href='./showcourses';" value="Show courses" />
-<form action="./showCards" method="get">
+<form action="./showDecks" method="get">
 	<select name="courseID" id="courseID" required>
 	<option value="">Select course</option>
 	% for c in courses:
 		<option value="{{c.course_id}}">{{c.name}}</option>
 	% end
 	</select>
-	  <input type="submit" value="Show Cards">
+	  <input type="submit" value="Show Deck">
 </form>
 </div>
    </body>
