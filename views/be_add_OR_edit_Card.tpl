@@ -53,15 +53,8 @@
 			var myArr = JSON.parse(xhr.responseText);
 			var newSelect=document.getElementById('deck_id');
 			newSelect.replaceChildren() 
-			var opt = document.createElement("option");
-			opt.value = -1;
-			opt.innerHTML = "Default deck"; // whatever property it has
 
-			// then append it to the select element
-			newSelect.appendChild(opt);
-
-			for(let i = 0; i < myArr.length; i++)
-			{
+			for(let i = 0; i < myArr.length; i++){
 			   var opt = document.createElement("option");
 			   opt.value= myArr[i].id;
 			   opt.innerHTML = myArr[i].info; // whatever property it has
