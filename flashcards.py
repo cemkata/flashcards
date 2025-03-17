@@ -18,7 +18,7 @@ admin_remark_id = 1
 @app.route('/static/<filepath:path>')
 def static_content(filepath):
      return static_file(filepath, root='./views/static')
- 
+
 @app.route('/favicon.ico')
 def favicon():
      return static_file('icon.png', root='./views/static')
@@ -27,8 +27,12 @@ def favicon():
 def show_couse_selection():
      return template('fe_index', courses = get_courses())
 
+@app.route('/showhangman')
+def show_show_hangman_decks():
+    return show_course_decks(True)
+
 @app.route('/showcourse')
-def show_course_decks():
+def show_course_decks(hangman = False):
      courseID = request.query.courseID or -1
      if courseID == -1:
         redirect("/")
@@ -36,19 +40,29 @@ def show_course_decks():
         int(courseID)
      except ValueError:
         redirect("/")
-            
+
      cName = get_course_name(courseID)
      deck = get_decks(courseID)
-     if(len(deck) == 1):
-        redirect("/showflashcards?courseID="+str(courseID)+"&deckID=1")
+     if hangman:
+        if(len(deck) == 1):
+            redirect("/showhangmanwordselection?courseID="+str(courseID)+"&deckID="+ str(deck[0]['id']))
+        else:
+            return template('fe_showDeck', course_id = courseID, course_name = cName[0], deck = deck, hangman = hangman)
      else:
-        return template('fe_showDeck', course_id = courseID, course_name = cName[0], deck = get_decks(courseID))
+        if(len(deck) == 1):
+            redirect("/showflashcards?courseID="+str(courseID)+"&deckID="+ str(deck[0]['id']))
+        else:
+            return template('fe_showDeck', course_id = courseID, course_name = cName[0], deck = deck)
+
+@app.route('/showhangmanwordselection')
+def show_show_hangman_decks():
+    return show_flashcard(True)
 
 @app.route('/showflashcards')
-def show_flashcard():
+def show_flashcard(hangman = False):
      courseID = request.query.courseID or -1
      deckID = request.query.deckID or -1
-     if deckID == -1: 
+     if deckID == -1:
         redirect("/")
      if courseID == -1:
         redirect("/")
@@ -57,16 +71,22 @@ def show_flashcard():
         int(deckID)
      except ValueError:
         redirect("/")
-        
-     return template('fe_slideShow', deckID = deckID, corceID = courseID)
+     if hangman:
+        return template('fe_hangman', deckID = deckID, corceID = courseID)
+     else:
+        return template('fe_slideShow', deckID = deckID, corceID = courseID)
+
+@app.route('/getWord')
+def get_words():
+     return get_deck(True)
 
 @app.route('/getDeck')
-def get_deck():
+def get_deck(hangman = False):
      #http://127.0.0.1:8081/getDeck?courseID=1&deckID=1
      courseID = request.query.courseID or -1
      deckID = request.query.deckID or -1
-     
-     if deckID == -1: 
+
+     if deckID == -1:
         redirect("/")
      if courseID == -1:
         redirect("/")
@@ -75,9 +95,9 @@ def get_deck():
         int(deckID)
      except ValueError:
         redirect("/")
-        
+
      sql = "SELECT `answer`, `question` FROM `flashcards_tbl` where course_id = "+ courseID +" and remark="+ deckID
-        
+
      conn = create_connection(database)
      with conn:
         # create a new card
@@ -85,22 +105,30 @@ def get_deck():
         cur.execute(sql)
         rows = cur.fetchall()
         fc = []
+        if hangman:
+            frontKey = 'word'
+            backKey = 'hint'
+            stringEnding = ""
+        else:
+            frontKey = 'front'
+            backKey = 'back'
+            stringEnding = "</br>"
         for row in rows:
            tmpDic={}
-           tmpDic['front']=""
-           tmpDic['back']=""
+           tmpDic[frontKey]=""
+           tmpDic[backKey]=""
 
            tmpBack = row[0].splitlines()
-           for l in tmpBack:
-               tmpDic['back'] += l + "</br>"
+           for line in tmpBack:
+               tmpDic[backKey] += line + stringEnding
 
            tmpFront = row[1].splitlines()
-           for l in tmpFront:
-               tmpDic['front'] += l + "</br>"
+           for line in tmpFront:
+               tmpDic[frontKey] += line + stringEnding
 
            fc.append(tmpDic.copy())
      return json.dumps(fc)
-     
+
 @app.route('/be')
 def redirectToBackEnd():
      redirect("./be/")
@@ -135,7 +163,7 @@ def route_add_Card():
      card = (courseID, html.unescape(question), html.unescape(answer));
      card_id = create_card(card, deck_id)
      return template('__done')
-    
+
 @app.route('/be/showCards')
 def route_show_Cards():
      courseID = request.query.courseID or -1
@@ -147,7 +175,7 @@ def route_show_Cards():
      except ValueError:
         redirect("/be/")
      sql = "SELECT `id`, `course_id`, `question`, `answer` FROM `flashcards_tbl` where course_id = "+ courseID +" AND remark = "+ deckID +" ORDER BY `_rowid_` ASC LIMIT 0, 50000;"
-        
+
      conn = create_connection(database)
      with conn:
         # create a new card
@@ -181,7 +209,7 @@ def route_edit_card():
             return template('be_add_OR_edit_Card', question = rows[0], answer=rows[1], qid = questionID, courses = courses)
         except TypeError:
             return template('be_add_OR_edit_Card', courses = get_courses())
-        
+
 @app.post('/be/updateCard') # or @app.route('/updateCard', method='POST')
 def route_update_card():
      question = request.forms.question
@@ -202,7 +230,7 @@ def route_update_card():
      _ = update_card(card)
      update_card_remark(qid, deck_id)
      return template('__done')
-     
+
 @app.route('/be/deleteCard')
 def route_delete_card():
      #http://127.0.0.1:8081/delete?id=5
@@ -225,7 +253,7 @@ def route_delete_card():
 
 ##########################
 ##Deck functions start  ##
-##########################   
+##########################
 @app.route('/be/editDeck')
 def route_edit_Deck():
      #http://127.0.0.1:8081/edit?id=5
@@ -258,12 +286,10 @@ def route_update_Deck():
      text = request.forms.deckName
      _ = update_remark(remrk_id, text)
      return template('__done')
- 
+
 @app.route('/be/deleteDeck')
 def route_delete_Deck():
-     #TODO
-     return template('__done')
-     #http://127.0.0.1:8081/deleteDeck?id=5
+     #http://127.0.0.1:8081/deleteDeck?courseID=123456&deckID=3
      courseID = request.query.courseID or -1
      deckID = request.query.deckID or -1
      if courseID == -1:
@@ -272,7 +298,7 @@ def route_delete_Deck():
         int(courseID)
      except ValueError:
         redirect("/be/showcourses")
-        
+
      if deckID == -1 or deckID == admin_remark_id:
         redirect("./")
      try:
@@ -282,9 +308,11 @@ def route_delete_Deck():
      conn = create_connection(database)
      with conn:
         cur = conn.cursor()
-        sql = "delete from flashcards_tbl where remark == {}".format(courseID)
+        sql = "delete from `flashcards_tbl` where `course_id` == {} and `remark` == {};".format(courseID, deckID)
+        print(sql)
         cur.execute(sql)
-        sql = "delete from remarks_tbl where remark == {}".format(courseID)
+        sql = "delete from `remarks_tbl` where `course_id` == {} and `id` == {};".format(courseID, deckID)
+        print(sql)
         cur.execute(sql)
      return template('__done')
 
@@ -299,7 +327,7 @@ def route_show_Deck():
         redirect("/be/")
      cName = get_course_name(courseID)
      return template('be_showDeck', course_id = courseID, course_name = cName[0], deck = get_decks(courseID))
-     
+
 @app.route('/be/getDecks')
 def route_show_Deck():
      courseID = request.query.courseID or -1
@@ -320,7 +348,7 @@ def route_show_Deck():
 @app.route('/be/newcourse')
 def route_new_course():
      return template('be_add_OR_edit_course')
- 
+
 @app.post('/be/addcourse') # or @app.route('/addcourse', method='POST')
 def route_add_course():
      courseID = request.forms.course_id
@@ -445,14 +473,14 @@ def get_decks(courseID):
            tmpDic['info']=row[1]
            dc.append(tmpDic.copy())
      return dc
-   
+
 def update_course(course):
     """
     Create a new project into the projects table
     :param conn:
     :param course
     :return: project id
-    """ 
+    """
     conn = create_connection(database)
     with conn:
         sql = ''' UPDATE courses_tbl SET course_id = ?, name = ?, description = ? WHERE id = ? '''
@@ -512,14 +540,14 @@ def create_card(card, remark = False):
         cur.execute(sql, new_card)
         conn.commit()
     return cur.lastrowid
-    
+
 def update_card(card):
     """
     Create a new project into the projects table
     :param conn:
     :param card
     :return: project id
-    """ 
+    """
     conn = create_connection(database)
     with conn:
         sql = ''' UPDATE flashcards_tbl SET course_id = ?, question = ?, answer = ? WHERE id = ? '''
@@ -631,7 +659,7 @@ def createDB():
                                         "question" text NOT NULL,
                                         "answer" text NOT NULL
                                     ); """
-                                    
+
     sql_create_courses_table = """ CREATE TABLE IF NOT EXISTS "courses_tbl" (
                                         "id" integer PRIMARY KEY,
                                         "course_id" integer NOT NULL UNIQUE,
@@ -640,9 +668,9 @@ def createDB():
                                     ); """
 
     sql_create_remarks_table = """ CREATE TABLE IF NOT EXISTS "remarks_tbl" (
-                                        "id"	INTEGER,
-                                        "description"	text NOT NULL,
-                                        "course_id"	INTEGER NOT NULL,
+                                        "id"    INTEGER,
+                                        "description"    text NOT NULL,
+                                        "course_id"    INTEGER NOT NULL,
                                         PRIMARY KEY("id" AUTOINCREMENT)
                                     ); """
     # create a database connection
@@ -657,7 +685,7 @@ def createDB():
         create_table(conn, sql_create_flashcards_table)
         create_table(conn, sql_create_courses_table)
         create_table(conn, sql_create_remarks_table)
-        create_remark("admin", 0)
+        ##create_remark("admin", 0)
         print("Done!")
     else:
         print("Error! cannot create the database connection.")
@@ -685,7 +713,7 @@ def bulkAdd(filename, remark, courseID):
 
 def exportDeck(courseID, deckID):
      sql = "SELECT `answer`, `question` FROM `flashcards_tbl` where course_id = "+ courseID +" and remark="+ deckID
-        
+
      conn = create_connection(database)
      with conn:
         # create a new card
@@ -751,13 +779,13 @@ def showHelp():
     -cnfg show the server configuration
     -imp <file name> <Remark optional> <course id> the name for bulck add
     -expt <corce,deck> i.e. 1,1
-    
+
     The file format is as folows: (The new line, tabs and other specila chars are ignored. use the formant below)
     cardFront_b_a_c_k_cardBack_e_n_d_cardFront_b_a_c_k_cardBack_e_n_d_cardFront_b_a_c_k_cardBack_e_n_d_""")
 
 def main():
     global admin_remark_id
-    admin_remark_id = getRemarkIDByName()
+    admin_remark_id = 1 #getRemarkIDByName()
     app.run(host = serverAddres, port = serverPort, debug=True)
 
 if __name__ == '__main__':
@@ -798,14 +826,14 @@ if __name__ == '__main__':
            bulkAdd(sys.argv[1:][1], remark, courseID)
            print("Import done.")
        except FileNotFoundError as e:
-           print(e)   
+           print(e)
     elif sys.argv[1:][0] == "-expt":
        try:
            tmpStr = sys.argv[1:][1]
            corce,deck = tmpStr.split(',')
            exportDeck(corce, deck)
        except IndexError:
-           print("No input file.")           
+           print("No input file.")
     elif sys.argv[1:][0] == "-cnfg":
        print("Database file  " + databaseFile)
        print("Max DB backup  " + str(maxDBbackups))
