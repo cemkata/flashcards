@@ -1,6 +1,6 @@
 var cards;
 
-const ver = 2.5;
+const ver = 2.6;
 
 // Variables
 var cource = document.getElementById("corse").value;
@@ -12,6 +12,9 @@ var dots = document.getElementsByClassName("dot");
 var allDots = document.getElementById("allDots");
 var card = document.querySelector('.card');
 var slideIndex = 1;
+const transitionDuration = parseInt(getComputedStyle(card).transition.split(" ")[1]);
+var transitionFlag = false;
+
 
 /**http request settings*/
 var xmlhttp = new XMLHttpRequest();
@@ -61,14 +64,20 @@ function currentSlide(n) {
 }
 
 function showSlides(n) {
+  if(transitionFlag){return}
   if (n > cards.length) {slideIndex = 1}    
   if (n < 1) {slideIndex = cards.length}
   for (var i = 0; i < dots.length; i++) {
       dots[i].className = dots[i].className.replace(" active", "");
   }
   card.classList.toggle('is-flipped', false);
+  transitionFlag = true;
   flashCardFront.innerHTML = cards[slideIndex - 1].front;
-  flashCardBack.innerHTML = cards[slideIndex - 1].back;
+  timer = setTimeout(function(){
+      flashCardBack.innerHTML = cards[slideIndex - 1].back;
+      transitionFlag = false;
+  }, transitionDuration * 1000);
+  
   numSlides.innerText = slideIndex + " / " + cards.length;
   dots[slideIndex-1].className += " active";
 }
