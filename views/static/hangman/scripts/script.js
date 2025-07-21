@@ -7,6 +7,10 @@ const gameModalLoading = document.querySelector(".game-modal-loading");
 
 const playAgainBtn = gameModal.querySelector("button");
 
+const caseInsensitive = true;
+
+var keyboardTimeout = false;
+
 // Initializing game variables
 let currentWord, correctLetters, wrongGuessCount;
 const maxGuesses = 9;
@@ -14,16 +18,13 @@ const maxGuesses = 9;
 const resetGame = () => {
     // Ressetting game variables and UI elements
     correctLetters = [];
-    numberOfSpaces = (currentWord.match(/ /g) || []).length;
-    if(numberOfSpaces != 0){
-        correctLetters.push(" ".repeat(numberOfSpaces));
-    }
     wrongGuessCount = 0;
     hangmanImage.src = "static/hangman/images/hangman-0.svg";
     guessesText.innerText = `${wrongGuessCount} / ${maxGuesses}`;
     wordDisplay.innerHTML = currentWord.split("").map(() => `<li class="letter"></li>`).join("");
     keyboardDiv.querySelectorAll("button").forEach(btn => btn.disabled = false);
     gameModal.classList.remove("show");
+	initGame(alphabetButtons[alphabetButtons.length - 1], ' ');
 }
 
 const getRandomWord = () => {
@@ -45,10 +46,10 @@ const gameOver = (isVictory) => {
 
 const initGame = (button, clickedLetter) => {
     // Checking if clickedLetter is exist on the currentWord
-    if(currentWord.includes(clickedLetter)) {
+    if(currentWord.includes(clickedLetter) || (caseInsensitive && currentWord.includes(clickedLetter.toUpperCase()))) {
         // Showing all correct letters on the word display
         [...currentWord].forEach((letter, index) => {
-            if(letter === clickedLetter) {
+            if(letter === clickedLetter || (caseInsensitive && letter === clickedLetter.toUpperCase())){
                 correctLetters.push(letter);
                 wordDisplay.querySelectorAll("li")[index].innerText = letter;
                 wordDisplay.querySelectorAll("li")[index].classList.add("guessed");
@@ -68,9 +69,10 @@ const initGame = (button, clickedLetter) => {
 }
 
 // Creating keyboard buttons and adding event listeners
+// The sapce " " should be last button added.
 const alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
       'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's',
-      't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö', 'ü', 'ß'];
+      't', 'u', 'v', 'w', 'x', 'y', 'z', 'ä', 'ö', 'ü', 'ß', ' '];
 
 for (let i = 0; i < alphabet.length; i++) {
     const button = document.createElement("button");
@@ -78,6 +80,9 @@ for (let i = 0; i < alphabet.length; i++) {
     keyboardDiv.appendChild(button);
     button.addEventListener("click", (e) => initGame(e.target, alphabet[i]));
 }
+
+const alphabetButtons = keyboardDiv.getElementsByTagName("button");
+alphabetButtons[alphabetButtons.length - 1].style.display = 'none'; //Hide the sapce " ".
 
 const getWordFromServer = () => {
     if (wordList.length != 0)
@@ -91,3 +96,17 @@ const getWordFromServer = () => {
 }
 
 getWordFromServer();
+
+document.onkeydown = function(evt) {
+	if(keyboardTimeout){return}
+	keyboardTimeout = true;
+	for(var i = 0; i < alphabet.length; i++){
+	  if(evt.key.toLowerCase() == alphabet[i] && !alphabetButtons[i].disabled){
+		  initGame(alphabetButtons[i], alphabet[i]);
+		  break;
+	  }
+	}
+	setTimeout(() => {
+	  keyboardTimeout = false;
+	}, 200); //wait a 0.2 seconds before processing other key
+};
