@@ -24,7 +24,19 @@ const resetGame = () => {
     wordDisplay.innerHTML = currentWord.split("").map(() => `<li class="letter"></li>`).join("");
     keyboardDiv.querySelectorAll("button").forEach(btn => btn.disabled = false);
     gameModal.classList.remove("show");
-	initGame(alphabetButtons[alphabetButtons.length - 1], ' ');
+
+    //Show all chars that are not in the defined alphabet
+    let nonAlpabetChars = [...new Set(currentWord)]
+    let tmpButton = {};
+    tmpButton.disabled = true;
+    for(let i = 0; i < nonAlpabetChars.length; i++){
+        if(!alphabet.includes(nonAlpabetChars[i])){
+            initGame(tmpButton, nonAlpabetChars[i]);
+        }
+    }
+
+    //remove the space
+    initGame(alphabetButtons[alphabetButtons.length - 1], ' ');
 }
 
 const getRandomWord = () => {
