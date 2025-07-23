@@ -25,11 +25,12 @@ def favicon():
 
 @app.route('/')
 def show_couse_selection():
-     return template('fe_index', courses = get_courses())
+     return template('fe_index', courses = get_courses(), hangman = hangman)
 
 @app.route('/showhangman')
 def show_show_hangman_decks():
-    return show_course_decks(True)
+    if hangman:
+        return show_course_decks(True)
 
 @app.route('/showcourse')
 def show_course_decks(hangman = False):
@@ -56,7 +57,8 @@ def show_course_decks(hangman = False):
 
 @app.route('/showhangmanwordselection')
 def show_show_hangman_decks():
-    return show_flashcard(True)
+    if hangman:
+        return show_flashcard(True)
 
 @app.route('/showflashcards')
 def show_flashcard(hangman = False):
@@ -78,7 +80,8 @@ def show_flashcard(hangman = False):
 
 @app.route('/getWord')
 def get_words():
-     return get_deck(True)
+    if hangman:
+        return get_deck(True)
 
 @app.route('/getDeck')
 def get_deck(hangman = False):

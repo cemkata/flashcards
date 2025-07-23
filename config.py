@@ -10,6 +10,8 @@ backup_compress = True
 serverAddres = "127.0.0.1"
 # Port of the web interface
 serverPort = 8082
+#Diable the hangman app
+hangman = True
 
 #Current version
-ver = 3.7
+ver = 3.8
