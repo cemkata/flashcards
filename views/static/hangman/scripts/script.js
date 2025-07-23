@@ -26,7 +26,12 @@ const resetGame = () => {
     gameModal.classList.remove("show");
 
     //Show all chars that are not in the defined alphabet
-    let nonAlpabetChars = [...new Set(currentWord)]
+    let nonAlpabetChars = []
+    if(caseInsensitive){
+        nonAlpabetChars = [...new Set(currentWord.toLowerCase())];
+    }else{
+        nonAlpabetChars = [...new Set(currentWord)];
+    }
     let tmpButton = {};
     tmpButton.disabled = true;
     for(let i = 0; i < nonAlpabetChars.length; i++){
@@ -110,15 +115,15 @@ const getWordFromServer = () => {
 getWordFromServer();
 
 document.onkeydown = function(evt) {
-	if(keyboardTimeout){return}
-	keyboardTimeout = true;
-	for(var i = 0; i < alphabet.length; i++){
-	  if(evt.key.toLowerCase() == alphabet[i] && !alphabetButtons[i].disabled){
-		  initGame(alphabetButtons[i], alphabet[i]);
-		  break;
-	  }
-	}
-	setTimeout(() => {
-	  keyboardTimeout = false;
-	}, 200); //wait a 0.2 seconds before processing other key
+    if(keyboardTimeout){return}
+    keyboardTimeout = true;
+    for(var i = 0; i < alphabet.length; i++){
+      if(evt.key.toLowerCase() == alphabet[i] && !alphabetButtons[i].disabled){
+          initGame(alphabetButtons[i], alphabet[i]);
+          break;
+      }
+    }
+    setTimeout(() => {
+      keyboardTimeout = false;
+    }, 200); //wait a 0.2 seconds before processing other key
 };
