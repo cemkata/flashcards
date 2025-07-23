@@ -777,7 +777,7 @@ def showHelp():
     print("""
     -h shows this help
     -cdb creates the database
-    -bckp creates a database
+    -bckp backup a database
     -rstr backUpfile
     -cnfg show the server configuration
     -imp <file name> <Remark optional> <course id> the name for bulck add
